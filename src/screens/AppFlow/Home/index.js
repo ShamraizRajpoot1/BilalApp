@@ -46,10 +46,6 @@ const Home = ({ navigation }) => {
       snapshot.docs.forEach((doc) => {
         const documentData = doc.data();
         const { name, link1, link2, status, } = documentData;
-  
-        
-  
-        // Check if the status is not "Sold" and if the timestamp is in the future
         if (status !== 'Sold') {
           const pdfData = {
             name: name || '', 

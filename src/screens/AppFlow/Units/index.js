@@ -55,7 +55,9 @@ const Units = ({ navigation, route }) => {
     const fileName = `Report_Download_${Math.floor(
       date.getTime() + date.getSeconds() / 2
     )}.pdf`;
-    const path = `${PictureDir}/${fileName}`;
+    const subfolderName = 'bilalapp';
+    const subfolderPath = `${PictureDir}/${subfolderName}`; // Path to the subfolder
+    const path = `${subfolderPath}/${fileName}`; // Full path including subfolder
 
     const options = {
       fileCache: true,
@@ -67,7 +69,7 @@ const Units = ({ navigation, route }) => {
         title: fileName,
       },
     };
-
+    
     try {
       await RNFetchBlob.config(options).fetch('GET', pdfLink); // Use RNFetchBlob.config
       console.log('Report downloaded successfully to:', path);
