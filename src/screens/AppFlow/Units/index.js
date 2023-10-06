@@ -16,15 +16,15 @@ import {
 } from 'react-native-responsive-dimensions';
 import { Colors } from '../../../services/utilities/Colors';
 import { AppStyles } from '../../../services/utilities/AppStyle';
-import RNFetchBlob from 'rn-fetch-blob';
+import RNFetchBlob from 'rn-fetch-blob'; // Import RNFetchBlob
 import { fontSize } from '../../../services/utilities/Fonts';
 import Header from '../../../components/Header';
 import { scale } from 'react-native-size-matters';
 
 const Units = ({ navigation, route }) => {
-  const back = () => {
-    navigation.goBack();
-  };
+  const back = () =>{
+    navigation.goBack()
+  }
   const { image, pdfDataArray } = route.params;
 
   const handleDownloadPDF = async (pdfLink) => {
@@ -50,34 +50,17 @@ const Units = ({ navigation, route }) => {
   };
 
   const downloadReport = async (pdfLink) => {
-    try {
-      if (Platform.OS === 'android') {
-        const granted = await requestStoragePermissionAndroid();
-        if (!granted) {
-          console.log('Storage Permission Denied.');
-          Alert.alert(
-            'Storage Permission Required',
-            'Please grant storage permission to download the report.'
-          );
-          return;
-        }
-      }
+    const PictureDir = RNFetchBlob.fs.dirs.DownloadDir;
+    const date = new Date();
+    const fileName = `Report_Download_${Math.floor(
+      date.getTime() + date.getSeconds() / 2
+    )}.pdf`;
+    const subfolderName = 'bilalapp';
+    const subfolderPath = `${PictureDir}/${subfolderName}`; 
+    const path = `${subfolderPath}/${fileName}`; 
 
-      const subfolderName = 'bilalapp';
-      const PictureDir = Platform.select({
-        android: RNFetchBlob.fs.dirs.DownloadDir,
-        ios: RNFetchBlob.fs.dirs.DocumentDir,
-      });
-      const subfolderPath = `${PictureDir}/${subfolderName}`;
-      const date = new Date();
-      const fileName = `Report_Download_${Math.floor(
-        date.getTime() + date.getSeconds() / 2
-      )}.pdf`;
-      const path = `${subfolderPath}/${fileName}`;
-
-      console.log('Path:', path); // Debugging: Check the path
-
-      const options = {
+    const options = Platform.select({
+      android: {
         fileCache: true,
         addAndroidDownloads: {
           useDownloadManager: true,
@@ -86,10 +69,15 @@ const Units = ({ navigation, route }) => {
           description: 'Risk Report Download',
           title: fileName,
         },
-      };
-
-      await RNFetchBlob.config(options).fetch('GET', pdfLink);
-
+      },
+      ios: {
+        fileCache: true,
+        path, 
+      },
+    });
+    
+    try {
+      await RNFetchBlob.config(options).fetch('GET', pdfLink); // Use RNFetchBlob.config
       console.log('Report downloaded successfully to:', path);
       Alert.alert(
         'Report Downloaded Successfully',
@@ -103,6 +91,7 @@ const Units = ({ navigation, route }) => {
       );
     }
   };
+  
 
   const requestStoragePermissionAndroid = async () => {
     try {
@@ -123,22 +112,22 @@ const Units = ({ navigation, route }) => {
   const renderUnitItem = ({ item }) => (
     <View style={styles.container}>
       <View style={styles.container1}>
-        <Text style={[styles.text, { fontWeight: 'bold' }]}>{item.name}</Text>
-        <Text style={[styles.text, { fontWeight: 'bold' }]}>Studio</Text>
+      <Text style={[styles.text, { fontWeight: 'bold' }]}>{item.name}</Text>
+      <Text style={[styles.text, { fontWeight: 'bold', }]}>Studio</Text>
       </View>
-      <View style={{ flexDirection: 'row' }}>
-        <TouchableOpacity
-          style={styles.pdf}
-          onPress={() => handleDownloadPDF(item.link1)}
-        >
-          <Text style={styles.linkText}>Download PDF 1</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.pdf}
-          onPress={() => handleDownloadPDF(item.link2)}
-        >
-          <Text style={styles.linkText}>Download PDF 2</Text>
-        </TouchableOpacity>
+      <View style={{flexDirection: 'row',}}>
+      <TouchableOpacity
+        style={styles.pdf}
+        onPress={() => handleDownloadPDF(item.link1)}
+      >
+        <Text style={styles.linkText}>Download PDF 1</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.pdf}
+        onPress={() => handleDownloadPDF(item.link2)}
+      >
+        <Text style={styles.linkText}>Download PDF 2</Text>
+      </TouchableOpacity>
       </View>
     </View>
   );
@@ -147,7 +136,7 @@ const Units = ({ navigation, route }) => {
     <>
       <Header onPress={back} Image={true} />
       <FlatList
-        data={pdfDataArray}
+        data={pdfDataArray} // Use pdfDataArray as the data source
         renderItem={renderUnitItem}
         keyExtractor={(item, index) => index.toString()}
         contentContainerStyle={[
@@ -169,18 +158,18 @@ const styles = StyleSheet.create({
     borderRadius: scale(5),
     paddingHorizontal: '5%',
     alignItems: 'center',
-    alignSelf: 'center',
+    alignSelf:'center',
     justifyContent: 'space-between',
     marginBottom: responsiveHeight(1),
   },
   pdf: {
-    marginVertical: responsiveHeight(0.5),
-    backgroundColor: Colors.backgroud1,
+    marginVertical:responsiveHeight(0.5),
+    backgroundColor:Colors.backgroud1,
     width: responsiveWidth(35),
     height: responsiveHeight(3),
     justifyContent: 'center',
-    alignItems: 'center',
-    marginHorizontal: responsiveWidth(3),
+    alignItems:'center',
+    marginHorizontal:responsiveWidth(3),
     borderRadius: scale(5),
   },
   toggleContainer: {
@@ -199,16 +188,16 @@ const styles = StyleSheet.create({
   text: {
     color: Colors.blackText,
     fontSize: fontSize.lebal,
-    width: '45%',
+    width:'45%'
   },
   linkText: {
     color: Colors.lebal,
     fontSize: fontSize.lebal,
   },
-  container1: {
-    marginTop: responsiveHeight(0.5),
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-  },
+  container1:{
+    marginTop:responsiveHeight(0.5),
+    flexDirection:'row',
+    justifyContent:'space-between',
+    width:'100%'
+  }
 });
