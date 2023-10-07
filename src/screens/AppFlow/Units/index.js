@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -14,20 +14,60 @@ import {
   responsiveFontSize,
   responsiveWidth,
 } from 'react-native-responsive-dimensions';
-import { Colors } from '../../../services/utilities/Colors';
-import { AppStyles } from '../../../services/utilities/AppStyle';
+import {Colors} from '../../../services/utilities/Colors';
+import {AppStyles} from '../../../services/utilities/AppStyle';
 import RNFetchBlob from 'rn-fetch-blob'; // Import RNFetchBlob
-import { fontSize } from '../../../services/utilities/Fonts';
+import {fontSize} from '../../../services/utilities/Fonts';
 import Header from '../../../components/Header';
-import { scale } from 'react-native-size-matters';
+import {scale} from 'react-native-size-matters';
+import Share from 'react-native-share';
 
-const Units = ({ navigation, route }) => {
-  const back = () =>{
-    navigation.goBack()
-  }
-  const { image, pdfDataArray } = route.params;
+const Units = ({navigation, route}) => {
+  const [sortedPdfDataArray, setSortedPdfDataArray] = useState([]);
+  const sortData = (data) => {
+    return data.sort((a, b) => {
+      const nameA = a.name.toLowerCase();
+      const nameB = b.name.toLowerCase();
+  
+      // Extract the alphanumeric part of the name
+      const alphaNumericA = nameA.match(/[a-zA-Z]+|[0-9]+/g);
+      const alphaNumericB = nameB.match(/[a-zA-Z]+|[0-9]+/g);
+  
+      // Compare each part of the alphanumeric strings
+      for (let i = 0; i < Math.min(alphaNumericA.length, alphaNumericB.length); i++) {
+        if (isNaN(alphaNumericA[i]) && isNaN(alphaNumericB[i])) {
+          // Both parts are alphabetic, compare them as strings
+          const comparison = alphaNumericA[i].localeCompare(alphaNumericB[i]);
+          if (comparison !== 0) {
+            return comparison;
+          }
+        } else {
+          // At least one part is numeric, compare them as numbers
+          const numA = parseFloat(alphaNumericA[i]) || 0;
+          const numB = parseFloat(alphaNumericB[i]) || 0;
+          if (numA !== numB) {
+            return numA - numB;
+          }
+        }
+      }
+  
+      // If all parts are equal, compare the full strings
+      return nameA.localeCompare(nameB);
+    });
+  };
+  useEffect(() => {
+    // Sort the pdfDataArray and set it in the state
+    const sortedData = sortData(pdfDataArray);
+    setSortedPdfDataArray(sortedData);
+  }, [pdfDataArray]);
+  const back = () => {
+    navigation.goBack();
+  };
+  const {image, pdfDataArray} = route.params;
+  // const [Path, setPath] = useState('';) 
+  
 
-  const handleDownloadPDF = async (pdfLink) => {
+  const handleDownloadPDF = async pdfLink => {
     try {
       if (Platform.OS === 'android') {
         const granted = await requestStoragePermissionAndroid();
@@ -35,7 +75,7 @@ const Units = ({ navigation, route }) => {
           console.log('Storage Permission Denied.');
           Alert.alert(
             'Storage Permission Required',
-            'Please grant storage permission to download the report.'
+            'Please grant storage permission to download the report.',
           );
         } else {
           console.log('Storage Permission Granted.');
@@ -43,22 +83,37 @@ const Units = ({ navigation, route }) => {
         }
       } else {
         downloadReport(pdfLink);
+        // sharefile(pdfLink);
       }
     } catch (error) {
       console.error('Error checking storage permission:', error);
     }
   };
+  const sharefile =async path =>{
+    const options = {
+      title: 'Share via',
+      message: 'Check out this file!',
+      url: `file://${path}`,
+      type: 'application/pdf',
+    };
+    await Share.open(options)
+    .then(res => {
+      console.log('Shared successfully');
+    })
+    .catch(error => {
+      console.error('Error sharing:', error);
+    });
+  }
 
-  const downloadReport = async (pdfLink) => {
+  const downloadReport = async pdfLink => {
     const PictureDir = RNFetchBlob.fs.dirs.DownloadDir;
     const date = new Date();
     const fileName = `Report_Download_${Math.floor(
-      date.getTime() + date.getSeconds() / 2
+      date.getTime() + date.getSeconds() / 2,
     )}.pdf`;
     const subfolderName = 'bilalapp';
-    const subfolderPath = `${PictureDir}/${subfolderName}`; 
-    const path = `${subfolderPath}/${fileName}`; 
-
+    const subfolderPath = `${PictureDir}/${subfolderName}`;
+    const path = `${subfolderPath}/${fileName}`;
     const options = Platform.select({
       android: {
         fileCache: true,
@@ -72,28 +127,26 @@ const Units = ({ navigation, route }) => {
       },
       ios: {
         fileCache: true,
-          path,
-          description: 'Risk Report Download',
-          title: fileName,
+        path,
       },
     });
-    
+
     try {
-      await RNFetchBlob.config(options).fetch('GET', pdfLink); 
+      await RNFetchBlob.config(options).fetch('GET', pdfLink); // Use RNFetchBlob.config
       console.log('Report downloaded successfully to:', path);
       Alert.alert(
         'Report Downloaded Successfully',
-        `The report has been saved to ${path}`
+        `The report has been saved to ${path}`,
       );
+      sharefile(path);
     } catch (error) {
       console.error('Error downloading report:', error);
       Alert.alert(
         'Download Error',
-        'There was an error while downloading the report. Please try again later.'
+        'There was an error while downloading the report. Please try again later.',
       );
     }
   };
-  
 
   const requestStoragePermissionAndroid = async () => {
     try {
@@ -102,7 +155,7 @@ const Units = ({ navigation, route }) => {
         {
           title: 'Storage Permission Required',
           message: 'Please grant storage permission to download the report.',
-        }
+        },
       );
       return granted === PermissionsAndroid.RESULTS.GRANTED;
     } catch (error) {
@@ -111,25 +164,25 @@ const Units = ({ navigation, route }) => {
     }
   };
 
-  const renderUnitItem = ({ item }) => (
+  const renderUnitItem = ({item}) => (
     <View style={styles.container}>
       <View style={styles.container1}>
-      <Text style={[styles.text, { fontWeight: 'bold' }]}>{item.name}</Text>
-      <Text style={[styles.text, { fontWeight: 'bold', }]}>Studio</Text>
+        <Text style={[styles.text, {fontWeight: 'bold'}]}>{item.name}</Text>
+        
       </View>
-      <View style={{flexDirection: 'row',}}>
-      <TouchableOpacity
-        style={styles.pdf}
-        onPress={() => handleDownloadPDF(item.link1)}
-      >
-        <Text style={styles.linkText}>Download PDF 1</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.pdf}
-        onPress={() => handleDownloadPDF(item.link2)}
-      >
-        <Text style={styles.linkText}>Download PDF 2</Text>
-      </TouchableOpacity>
+      <View style={{width:'100%'}}>
+      <Text style={[styles.text]}>{item.bed} | {item.area}</Text></View>
+      <View style={{flexDirection: 'row'}}>
+        <TouchableOpacity
+          style={styles.pdf}
+          onPress={() => handleDownloadPDF(item.link1)}>
+          <Text style={styles.linkText}>Download PDF 1</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.pdf}
+          onPress={() => handleDownloadPDF(item.link2)}>
+          <Text style={styles.linkText}>Download PDF 2</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -138,12 +191,12 @@ const Units = ({ navigation, route }) => {
     <>
       <Header onPress={back} Image={true} />
       <FlatList
-        data={pdfDataArray} // Use pdfDataArray as the data source
+        data={sortedPdfDataArray}
         renderItem={renderUnitItem}
         keyExtractor={(item, index) => index.toString()}
         contentContainerStyle={[
           AppStyles.contentContainer,
-          { backgroundColor: Colors.backgroud1 },
+          {backgroundColor: Colors.backgroud1},
         ]}
       />
     </>
@@ -155,23 +208,23 @@ export default Units;
 const styles = StyleSheet.create({
   container: {
     width: responsiveWidth(85),
-    height: responsiveHeight(8),
+    height: responsiveHeight(10),
     backgroundColor: Colors.fieldBackground,
     borderRadius: scale(5),
     paddingHorizontal: '5%',
     alignItems: 'center',
-    alignSelf:'center',
+    alignSelf: 'center',
     justifyContent: 'space-between',
     marginBottom: responsiveHeight(1),
   },
   pdf: {
-    marginVertical:responsiveHeight(0.5),
-    backgroundColor:Colors.backgroud1,
+    marginVertical: responsiveHeight(0.5),
+    backgroundColor: Colors.backgroud1,
     width: responsiveWidth(35),
     height: responsiveHeight(3),
     justifyContent: 'center',
-    alignItems:'center',
-    marginHorizontal:responsiveWidth(3),
+    alignItems: 'center',
+    marginHorizontal: responsiveWidth(3),
     borderRadius: scale(5),
   },
   toggleContainer: {
@@ -190,16 +243,16 @@ const styles = StyleSheet.create({
   text: {
     color: Colors.blackText,
     fontSize: fontSize.lebal,
-    width:'45%'
+    width: '45%',
   },
   linkText: {
     color: Colors.lebal,
     fontSize: fontSize.lebal,
   },
-  container1:{
-    marginTop:responsiveHeight(0.5),
-    flexDirection:'row',
-    justifyContent:'space-between',
-    width:'100%'
-  }
+  container1: {
+    marginTop: responsiveHeight(0.5),
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
 });
