@@ -72,8 +72,6 @@ const Units = ({ navigation, route }) => {
       },
       ios: {
         fileCache: true,
-         useDownloadManager: true,
-          notification: true,
           path,
           description: 'Risk Report Download',
           title: fileName,
