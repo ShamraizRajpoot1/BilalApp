@@ -72,12 +72,16 @@ const Units = ({ navigation, route }) => {
       },
       ios: {
         fileCache: true,
-        path, 
+         useDownloadManager: true,
+          notification: true,
+          path,
+          description: 'Risk Report Download',
+          title: fileName,
       },
     });
     
     try {
-      await RNFetchBlob.config(options).fetch('GET', pdfLink); // Use RNFetchBlob.config
+      await RNFetchBlob.config(options).fetch('GET', pdfLink); 
       console.log('Report downloaded successfully to:', path);
       Alert.alert(
         'Report Downloaded Successfully',
