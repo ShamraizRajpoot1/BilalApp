@@ -14,28 +14,38 @@ import {
   responsiveFontSize,
   responsiveWidth,
 } from 'react-native-responsive-dimensions';
-import {Colors} from '../../../services/utilities/Colors';
-import {AppStyles} from '../../../services/utilities/AppStyle';
+import { Colors } from '../../../services/utilities/Colors';
+import { AppStyles } from '../../../services/utilities/AppStyle';
 import RNFetchBlob from 'rn-fetch-blob'; // Import RNFetchBlob
-import {fontSize} from '../../../services/utilities/Fonts';
+import { fontSize } from '../../../services/utilities/Fonts';
 import Header from '../../../components/Header';
-import {scale} from 'react-native-size-matters';
+import { scale } from 'react-native-size-matters';
 import Share from 'react-native-share';
-import OpenAnything from 'react-native-openanything';
 
-const Units = ({navigation, route}) => {
+const Units = ({ navigation, route }) => {
   const [sortedPdfDataArray, setSortedPdfDataArray] = useState([]);
+
+  useEffect(() => {
+    // Sort the pdfDataArray and set it in the state
+    const sortedData = sortData(pdfDataArray);
+    setSortedPdfDataArray(sortedData);
+  }, [pdfDataArray]);
+
   const sortData = (data) => {
     return data.sort((a, b) => {
       const nameA = a.name.toLowerCase();
       const nameB = b.name.toLowerCase();
-  
+
       // Extract the alphanumeric part of the name
       const alphaNumericA = nameA.match(/[a-zA-Z]+|[0-9]+/g);
       const alphaNumericB = nameB.match(/[a-zA-Z]+|[0-9]+/g);
-  
+
       // Compare each part of the alphanumeric strings
-      for (let i = 0; i < Math.min(alphaNumericA.length, alphaNumericB.length); i++) {
+      for (
+        let i = 0;
+        i < Math.min(alphaNumericA.length, alphaNumericB.length);
+        i++
+      ) {
         if (isNaN(alphaNumericA[i]) && isNaN(alphaNumericB[i])) {
           // Both parts are alphabetic, compare them as strings
           const comparison = alphaNumericA[i].localeCompare(alphaNumericB[i]);
@@ -51,21 +61,19 @@ const Units = ({navigation, route}) => {
           }
         }
       }
-  
+
       // If all parts are equal, compare the full strings
       return nameA.localeCompare(nameB);
     });
   };
-  useEffect(() => {
-    // Sort the pdfDataArray and set it in the state
-    const sortedData = sortData(pdfDataArray);
-    setSortedPdfDataArray(sortedData);
-  }, [pdfDataArray]);
+
   const back = () => {
     navigation.goBack();
   };
-  const {image, pdfDataArray} = route.params;
-  const handleDownloadPDF = async pdfLink => {
+
+  const { pdfDataArray } = route.params;
+
+  const handleDownloadPDF = async (pdfLink) => {
     try {
       if (Platform.OS === 'android') {
         const granted = await requestStoragePermissionAndroid();
@@ -73,40 +81,45 @@ const Units = ({navigation, route}) => {
           console.log('Storage Permission Denied.');
           Alert.alert(
             'Storage Permission Required',
-            'Please grant storage permission to download the report.',
+            'Please grant storage permission to download the report.'
           );
         } else {
           console.log('Storage Permission Granted.');
-          downloadReport(pdfLink);
+          const filePath = await downloadReport(pdfLink);
+          openPDF(filePath);
         }
       } else {
-        downloadReport(pdfLink);
+        const filePath = await downloadReport(pdfLink);
+          openPDF(filePath);
+        // On iOS, you can choose to directly open the PDF without requesting permissions.
         // sharefile(pdfLink);
       }
     } catch (error) {
       console.error('Error checking storage permission:', error);
     }
   };
-const sharefile = async (path) => {
-  const options = {
-    url: `file://${path}`,
-    type: 'application/pdf',
-    title: 'Open PDF with',
+
+  const openPDF = async (filePath) => {
+    const options = {
+      title: 'Open PDF with',
+      message: 'Choose a PDF reader to open the file.',
+      url: `file://${filePath}`,
+      type: 'application/pdf',
+    };
+
+    try {
+      await Share.open(options);
+      console.log('File opened successfully');
+    } catch (error) {
+      console.error('Error opening file:', error);
+    }
   };
 
-  try {
-    await Share.open(options);
-    console.log('File opened successfully');
-  } catch (error) {
-    console.error('Error opening file:', error);
-  }
-};
-
-  const downloadReport = async pdfLink => {
+  const downloadReport = async (pdfLink) => {
     const PictureDir = RNFetchBlob.fs.dirs.DownloadDir;
     const date = new Date();
     const fileName = `Report_Download_${Math.floor(
-      date.getTime() + date.getSeconds() / 2,
+      date.getTime() + date.getSeconds() / 2
     )}.pdf`;
     const subfolderName = 'bilalapp';
     const subfolderPath = `${PictureDir}/${subfolderName}`;
@@ -129,19 +142,20 @@ const sharefile = async (path) => {
     });
 
     try {
-      await RNFetchBlob.config(options).fetch('GET', pdfLink); // Use RNFetchBlob.config
+      await RNFetchBlob.config(options).fetch('GET', pdfLink);
       console.log('Report downloaded successfully to:', path);
       Alert.alert(
         'Report Downloaded Successfully',
-        `The report has been saved to ${path}`,
+        `The report has been saved to ${path}`
       );
-      sharefile(path);
+      return path;
     } catch (error) {
       console.error('Error downloading report:', error);
       Alert.alert(
         'Download Error',
-        'There was an error while downloading the report. Please try again later.',
+        'There was an error while downloading the report. Please try again later.'
       );
+      return null;
     }
   };
 
@@ -152,7 +166,7 @@ const sharefile = async (path) => {
         {
           title: 'Storage Permission Required',
           message: 'Please grant storage permission to download the report.',
-        },
+        }
       );
       return granted === PermissionsAndroid.RESULTS.GRANTED;
     } catch (error) {
@@ -160,23 +174,23 @@ const sharefile = async (path) => {
       return false;
     }
   };
-  
-  const renderUnitItem = ({item}) => (
+
+  const renderUnitItem = ({ item }) => (
     <View style={styles.container}>
       <View style={styles.container1}>
-        <Text style={[styles.text, {fontWeight: 'bold'}]}>{item.name}</Text>
-        
+        <Text style={[styles.text, { fontWeight: 'bold' }]}>{item.name}</Text>
       </View>
-      <View style={{width:'100%'}}>
-      <Text style={[styles.text]}>{item.bed} | {item.area}</Text></View>
-      <View style={{flexDirection: 'row'}}>
-      
+      <View style={{ width: '100%' }}>
+        <Text style={[styles.text]}>
+          {item.bed} | {item.area}
+        </Text>
+      </View>
+      <View style={{ flexDirection: 'row' }}>
         <TouchableOpacity
           style={styles.pdf}
           onPress={() => handleDownloadPDF(item.link1)}>
           <Text style={styles.linkText}>Download PDF 1</Text>
         </TouchableOpacity>
-         
         <TouchableOpacity
           style={styles.pdf}
           onPress={() => handleDownloadPDF(item.link2)}>
@@ -195,7 +209,7 @@ const sharefile = async (path) => {
         keyExtractor={(item, index) => index.toString()}
         contentContainerStyle={[
           AppStyles.contentContainer,
-          {backgroundColor: Colors.backgroud1},
+          { backgroundColor: Colors.backgroud1 },
         ]}
       />
     </>
