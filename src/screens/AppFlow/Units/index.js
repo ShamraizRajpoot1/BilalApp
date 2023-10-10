@@ -21,6 +21,7 @@ import {fontSize} from '../../../services/utilities/Fonts';
 import Header from '../../../components/Header';
 import {scale} from 'react-native-size-matters';
 import Share from 'react-native-share';
+import OpenAnything from 'react-native-openanything';
 
 const Units = ({navigation, route}) => {
   const [sortedPdfDataArray, setSortedPdfDataArray] = useState([]);
@@ -89,21 +90,20 @@ const Units = ({navigation, route}) => {
       console.error('Error checking storage permission:', error);
     }
   };
-  const sharefile =async path =>{
-    const options = {
-      title: 'Share via',
-      message: 'Check out this file!',
-      url: `file://${path}`,
-      type: 'application/pdf',
-    };
-    await Share.open(options)
-    .then(res => {
-      console.log('Shared successfully');
-    })
-    .catch(error => {
-      console.error('Error sharing:', error);
-    });
+const sharefile = async (path) => {
+  const options = {
+    url: `file://${path}`,
+    type: 'application/pdf',
+    title: 'Open PDF with',
+  };
+
+  try {
+    await Share.open(options);
+    console.log('File opened successfully');
+  } catch (error) {
+    console.error('Error opening file:', error);
   }
+};
 
   const downloadReport = async pdfLink => {
     const PictureDir = RNFetchBlob.fs.dirs.DownloadDir;
@@ -163,7 +163,7 @@ const Units = ({navigation, route}) => {
       return false;
     }
   };
-
+  
   const renderUnitItem = ({item}) => (
     <View style={styles.container}>
       <View style={styles.container1}>
@@ -173,11 +173,13 @@ const Units = ({navigation, route}) => {
       <View style={{width:'100%'}}>
       <Text style={[styles.text]}>{item.bed} | {item.area}</Text></View>
       <View style={{flexDirection: 'row'}}>
+      
         <TouchableOpacity
           style={styles.pdf}
           onPress={() => handleDownloadPDF(item.link1)}>
           <Text style={styles.linkText}>Download PDF 1</Text>
         </TouchableOpacity>
+         
         <TouchableOpacity
           style={styles.pdf}
           onPress={() => handleDownloadPDF(item.link2)}>
