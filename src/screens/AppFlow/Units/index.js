@@ -65,9 +65,6 @@ const Units = ({navigation, route}) => {
     navigation.goBack();
   };
   const {image, pdfDataArray} = route.params;
-  // const [Path, setPath] = useState('';) 
-  
-
   const handleDownloadPDF = async pdfLink => {
     try {
       if (Platform.OS === 'android') {
