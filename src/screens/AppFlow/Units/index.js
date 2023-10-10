@@ -93,6 +93,14 @@ const Units = ({ navigation, route }) => {
   };
 
   const openPDF = async (filePath) => {
+    
+    const fileExists = await RNFetchBlob.fs.exists(filePath);
+  
+    if (!fileExists) {
+      console.error('File does not exist at the specified path:', filePath);
+      return;
+    }
+  
     const options = {
       title: 'Open PDF with',
       message: 'Choose a PDF reader to open the file.',
@@ -110,10 +118,10 @@ const Units = ({ navigation, route }) => {
     } catch (error) {
       if (error.message !== 'User did not share') {
         console.error('Error opening file:', error);
-        // Handle other errors here, if needed.
       }
     }
   };
+  
   
 
   const downloadReport = async (pdfLink) => {
