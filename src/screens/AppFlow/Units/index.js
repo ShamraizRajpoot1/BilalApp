@@ -5,7 +5,6 @@ import {
   View,
   FlatList,
   TouchableOpacity,
-  PermissionsAndroid,
   Alert,
   Platform,
 } from 'react-native';
@@ -75,27 +74,21 @@ const Units = ({ navigation, route }) => {
 
   const handleDownloadPDF = async (pdfLink) => {
     try {
-      if (Platform.OS === 'android') {
-        const granted = await requestStoragePermissionAndroid();
-        if (!granted) {
-          console.log('Storage Permission Denied.');
-          Alert.alert(
-            'Storage Permission Required',
-            'Please grant storage permission to download the report.'
-          );
-        } else {
-          console.log('Storage Permission Granted.');
-          const filePath = await downloadReport(pdfLink);
-          openPDF(filePath);
-        }
+      const filePath = await downloadReport(pdfLink);
+      if (filePath) {
+        openPDF(filePath);
       } else {
-        const filePath = await downloadReport(pdfLink);
-          openPDF(filePath);
-        // On iOS, you can choose to directly open the PDF without requesting permissions.
-        // sharefile(pdfLink);
+        Alert.alert(
+          'Download Error',
+          'There was an error while downloading the report. Please try again later.'
+        );
       }
     } catch (error) {
-      console.error('Error checking storage permission:', error);
+      console.error('Error downloading report:', error);
+      Alert.alert(
+        'Download Error',
+        'There was an error while downloading the report. Please try again later.'
+      );
     }
   };
 
@@ -106,14 +99,22 @@ const Units = ({ navigation, route }) => {
       url: `file://${filePath}`,
       type: 'application/pdf',
     };
-
+  
     try {
-      await Share.open(options);
-      console.log('File opened successfully');
+      const result = await Share.open(options);
+      if (result && result.app) {
+        console.log('File opened successfully with:', result.app);
+      } else {
+        console.log('User did not open the file with any app.');
+      }
     } catch (error) {
-      console.error('Error opening file:', error);
+      if (error.message !== 'User did not share') {
+        console.error('Error opening file:', error);
+        // Handle other errors here, if needed.
+      }
     }
   };
+  
 
   const downloadReport = async (pdfLink) => {
     const PictureDir = RNFetchBlob.fs.dirs.DownloadDir;
@@ -156,22 +157,6 @@ const Units = ({ navigation, route }) => {
         'There was an error while downloading the report. Please try again later.'
       );
       return null;
-    }
-  };
-
-  const requestStoragePermissionAndroid = async () => {
-    try {
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
-        {
-          title: 'Storage Permission Required',
-          message: 'Please grant storage permission to download the report.',
-        }
-      );
-      return granted === PermissionsAndroid.RESULTS.GRANTED;
-    } catch (error) {
-      console.error('Error requesting storage permission:', error);
-      return false;
     }
   };
 
