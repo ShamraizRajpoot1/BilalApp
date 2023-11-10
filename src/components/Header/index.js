@@ -26,16 +26,24 @@ const Header = props => {
           <TouchableOpacity
             style={{marginLeft: responsiveScreenWidth(3)}}
             onPress={props.onPress}>
-            <Image style={styles.headerback} source={appIcons.back}/>
+            <Image style={styles.headerback} source={appIcons.back} />
           </TouchableOpacity>
         )}
       </View>
-      <View style={{width:'30%'}}>
+      <View style={{width: '30%'}}>
         {props.options && (
           <TouchableOpacity
-            style={{marginLeft: responsiveScreenWidth(7)}}
+            style={{marginLeft: responsiveScreenWidth(7), marginTop: '30%'}}
             onPress={props.onPress}>
-            <Text style={{color:'white',fontSize:responsiveFontSize(3),fontWeight:'bold'}}>Logout</Text>
+            <Text
+              style={{
+                color: 'white',
+                fontSize: responsiveFontSize(2.0),
+                fontWeight: 'normal',
+                marginTop: responsiveScreenHeight(1.2),
+              }}>
+              Log Out
+            </Text>
           </TouchableOpacity>
         )}
       </View>
@@ -47,7 +55,7 @@ export default Header;
 
 const styles = StyleSheet.create({
   header: {
-    height: responsiveScreenHeight(7.5),
+    height: responsiveScreenHeight(10.5),
     backgroundColor: Colors.backgroud1,
     flexDirection: 'row',
     alignItems: 'center',
@@ -69,6 +77,7 @@ const styles = StyleSheet.create({
     width: scale(22),
     marginLeft: '5%',
     justifyContent: 'flex-start',
+    marginTop: 20,
   },
   logo: {
     width: scale(140),

@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   StyleSheet,
   Text,
   View,
   FlatList,
   TouchableOpacity,
+  PermissionsAndroid,
   Alert,
   Platform,
 } from 'react-native';
@@ -13,24 +14,17 @@ import {
   responsiveFontSize,
   responsiveWidth,
 } from 'react-native-responsive-dimensions';
-import { Colors } from '../../../services/utilities/Colors';
-import { AppStyles } from '../../../services/utilities/AppStyle';
+import {Colors} from '../../../services/utilities/Colors';
+import {AppStyles} from '../../../services/utilities/AppStyle';
 import RNFetchBlob from 'rn-fetch-blob'; // Import RNFetchBlob
-import { fontSize } from '../../../services/utilities/Fonts';
+import {fontSize} from '../../../services/utilities/Fonts';
 import Header from '../../../components/Header';
-import { scale } from 'react-native-size-matters';
+import {scale} from 'react-native-size-matters';
 import Share from 'react-native-share';
 
-const Units = ({ navigation, route }) => {
+const Units = ({navigation, route}) => {
   const [sortedPdfDataArray, setSortedPdfDataArray] = useState([]);
-
-  useEffect(() => {
-    // Sort the pdfDataArray and set it in the state
-    const sortedData = sortData(pdfDataArray);
-    setSortedPdfDataArray(sortedData);
-  }, [pdfDataArray]);
-
-  const sortData = (data) => {
+  const sortData = data => {
     return data.sort((a, b) => {
       const nameA = a.name.toLowerCase();
       const nameB = b.name.toLowerCase();
@@ -65,123 +59,180 @@ const Units = ({ navigation, route }) => {
       return nameA.localeCompare(nameB);
     });
   };
-
+  useEffect(() => {
+    // Sort the pdfDataArray and set it in the state
+    const sortedData = sortData(pdfDataArray);
+    setSortedPdfDataArray(sortedData);
+  }, [pdfDataArray]);
   const back = () => {
     navigation.goBack();
   };
+  const {image, pdfDataArray} = route.params;
+  // const [Path, setPath] = useState('';)
 
-  const { pdfDataArray } = route.params;
-
-  const handleDownloadPDF = async (pdfLink) => {
+  const handleDownloadPDF = async pdfLink => {
     try {
-      const filePath = await downloadReport(pdfLink);
-      if (filePath) {
-        openPDF(filePath);
+      if (Platform.OS === 'android') {
+        const granted = await requestStoragePermissionAndroid();
+        if (!granted) {
+          console.log('Storage Permission Denied.');
+          Alert.alert(
+            'Storage Permission Required',
+            'Please grant storage permission to download the report.',
+          );
+        } else {
+          console.log('Storage Permission Granted.');
+          downloadReport(pdfLink);
+        }
       } else {
-        Alert.alert(
-          'Download Error',
-          'There was an error while downloading the report. Please try again later.'
-        );
+        downloadReport(pdfLink);
+        // sharefile(pdfLink);
       }
     } catch (error) {
-      console.error('Error downloading report:', error);
-      Alert.alert(
-        'Download Error',
-        'There was an error while downloading the report. Please try again later.'
-      );
+      console.error('Error checking storage permission:', error);
     }
   };
-
-  const openPDF = async (filePath) => {
+  const sharefile = async path => {
     const options = {
-      title: 'Open PDF with',
-      message: 'Choose a PDF reader to open the file.',
-      url: `file://${filePath}`,
+      title: 'Share via',
+      message: 'Check out this file!',
+      url: `file://${path}`,
       type: 'application/pdf',
     };
-  
-    try {
-      const result = await Share.open(options);
-      if (result && result.app) {
-        console.log('File opened successfully with:', result.app);
-      } else {
-        console.log('User did not open the file with any app.');
-      }
-    } catch (error) {
-      if (error.message !== 'User did not share') {
-        console.error('Error opening file:', error);
-        // Handle other errors here, if needed.
-      }
-    }
+    await Share.open(options)
+      .then(res => {
+        console.log('Shared successfully');
+      })
+      .catch(error => {
+        console.error('Error sharing:', error);
+      });
   };
-  
 
-  const downloadReport = async (pdfLink) => {
-    const PictureDir = RNFetchBlob.fs.dirs.DownloadDir;
+  const downloadReport = async pdfLink => {
+    let dirs = RNFetchBlob.fs.dirs;
     const date = new Date();
     const fileName = `Report_Download_${Math.floor(
-      date.getTime() + date.getSeconds() / 2
+      date.getTime() + date.getSeconds() / 2,
     )}.pdf`;
-    const subfolderName = 'bilalapp';
-    const subfolderPath = `${PictureDir}/${subfolderName}`;
-    const path = `${subfolderPath}/${fileName}`;
-    const options = Platform.select({
-      android: {
-        fileCache: true,
-        addAndroidDownloads: {
-          useDownloadManager: true,
-          notification: true,
-          path,
-          description: 'Risk Report Download',
-          title: fileName,
-        },
+    const path = `${dirs.DocumentDir}/${fileName}`;
+    RNFetchBlob.config({
+      fileCache: true,
+      appendExt: 'pdf',
+      path: path,
+      addAndroidDownloads: {
+        useDownloadManager: true,
+        notification: true,
+        title: fileName,
+        description: 'File downloaded by download manager.',
+        mime: 'application/pdf',
       },
-      ios: {
-        fileCache: true,
-        path,
-      },
-    });
+    })
+      .fetch('GET', pdfLink)
+      .then(res => {
+        // in iOS, we want to save our files by opening up the saveToFiles bottom sheet action.
+        // whereas in android, the download manager is handling the download for us.
+        Alert.alert(
+          'Report Downloaded Successfully',
+          `The report has been saved to ${path}`,
+        );
+        if (Platform.OS === 'ios') {
+          sharefile(path);
+        }
+      })
+      .catch(err => {
+        console.log('BLOB ERROR -> ', err);
+        // Alert.alert(
+        //   'Download Error',
+        //   'There was an error while downloading the report. Please try again later.',
+        // );
+      });
+    // const PictureDir = RNFetchBlob.fs.dirs.DownloadDir;
+    // const date = new Date();
+    // const fileName = `Report_Download_${Math.floor(
+    //   date.getTime() + date.getSeconds() / 2,
+    // )}.pdf`;
+    // const subfolderName = 'bilalapp';
+    // const subfolderPath = `${PictureDir}/${subfolderName}`;
+    // const path = `${subfolderPath}/${fileName}`;
+    // const options = Platform.select({
+    //   android: {
+    //     fileCache: true,
+    //     addAndroidDownloads: {
+    //       useDownloadManager: true,
+    //       notification: true,
+    //       path,
+    //       description: 'Risk Report Download',
+    //       title: fileName,
+    //     },
+    //   },
+    //   ios: {
+    //     fileCache: true,
+    //     path,
+    //   },
+    // });
 
+    // try {
+    //   await RNFetchBlob.config(options).fetch('GET', pdfLink); // Use RNFetchBlob.config
+    //   console.log('Report downloaded successfully to:', path);
+    //   Alert.alert(
+    //     'Report Downloaded Successfully',
+    //     `The report has been saved to ${path}`,
+    //   );
+    //   sharefile(path);
+    // } catch (error) {
+    //   console.error('Error downloading report:', error);
+    //   Alert.alert(
+    //     'Download Error',
+    //     'There was an error while downloading the report. Please try again later.',
+    //   );
+    // }
+  };
+
+  const requestStoragePermissionAndroid = async () => {
     try {
-      await RNFetchBlob.config(options).fetch('GET', pdfLink);
-      console.log('Report downloaded successfully to:', path);
-      Alert.alert(
-        'Report Downloaded Successfully',
-        `The report has been saved to ${path}`
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+        {
+          title: 'Storage Permission Required',
+          message: 'Please grant storage permission to download the report.',
+        },
       );
-      return path;
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
     } catch (error) {
-      console.error('Error downloading report:', error);
-      Alert.alert(
-        'Download Error',
-        'There was an error while downloading the report. Please try again later.'
-      );
-      return null;
+      console.error('Error requesting storage permission:', error);
+      return false;
     }
   };
 
-  const renderUnitItem = ({ item }) => (
+  const renderUnitItem = ({item}) => (
     <View style={styles.container}>
       <View style={styles.container1}>
-        <Text style={[styles.text, { fontWeight: 'bold' }]}>{item.name}</Text>
+        <Text style={[styles.text, {fontWeight: 'bold'}]}>{item.name}</Text>
       </View>
-      <View style={{ width: '100%' }}>
-        <Text style={[styles.text]}>
+      <View style={{width: '100%'}}>
+        <Text style={[styles.bedroomText]}>
           {item.bed} | {item.area}
         </Text>
       </View>
-      <View style={{ flexDirection: 'row' }}>
+      <View style={[styles.downloadAreaSection, {flexDirection: 'row'}]}>
         <TouchableOpacity
           style={styles.pdf}
           onPress={() => handleDownloadPDF(item.link1)}>
-          <Text style={styles.linkText}>Download PDF 1</Text>
+          <Text style={styles.linkText}>{item.b1}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.pdf}
           onPress={() => handleDownloadPDF(item.link2)}>
-          <Text style={styles.linkText}>Download PDF 2</Text>
+          <Text style={styles.linkText}>{item.b2}</Text>
         </TouchableOpacity>
+        
       </View>
+      {item.link3 !== '' &&
+      <TouchableOpacity
+          style={[styles.pdf,{alignSelf:'flex-start', marginLeft: responsiveWidth(-1.2),}]}
+          onPress={() => handleDownloadPDF(item.link3)}>
+          <Text style={styles.linkText}>{item.b3}</Text>
+        </TouchableOpacity>}
     </View>
   );
 
@@ -194,7 +245,7 @@ const Units = ({ navigation, route }) => {
         keyExtractor={(item, index) => index.toString()}
         contentContainerStyle={[
           AppStyles.contentContainer,
-          { backgroundColor: Colors.backgroud1 },
+          {backgroundColor: Colors.backgroud1},
         ]}
       />
     </>
@@ -206,24 +257,25 @@ export default Units;
 const styles = StyleSheet.create({
   container: {
     width: responsiveWidth(85),
-    height: responsiveHeight(10),
-    backgroundColor: Colors.fieldBackground,
+    backgroundColor: Colors.unitsBackgroundColor,
     borderRadius: scale(5),
-    paddingHorizontal: '5%',
+    paddingHorizontal: '3%',
+    // paddingVertical:"10%",
     alignItems: 'center',
     alignSelf: 'center',
     justifyContent: 'space-between',
-    marginBottom: responsiveHeight(1),
+    marginBottom: responsiveHeight(2),
   },
   pdf: {
     marginVertical: responsiveHeight(0.5),
     backgroundColor: Colors.backgroud1,
-    width: responsiveWidth(35),
-    height: responsiveHeight(3),
+    width: responsiveWidth(38),
+    height: responsiveHeight(4),
     justifyContent: 'center',
     alignItems: 'center',
     marginHorizontal: responsiveWidth(3),
     borderRadius: scale(5),
+    // padding: "5%",
   },
   toggleContainer: {
     flexDirection: 'row',
@@ -241,8 +293,11 @@ const styles = StyleSheet.create({
   text: {
     color: Colors.blackText,
     fontSize: fontSize.lebal,
-    width: '45%',
+    width: '49%',
   },
+  bedroomText:{    color: Colors.blackText,
+    fontSize: fontSize.lebal,
+    width: '100%',},
   linkText: {
     color: Colors.lebal,
     fontSize: fontSize.lebal,
@@ -252,5 +307,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%',
+    marginTop: '6%',
+  },
+  container2: {
+    // flexDirection: 'row',
+    // justifyContent: 'start',
+    width: '100%',
+    marginTop: '0%',
+    marginBottom: '0%',
+  },
+  container3: {
+    // flexDirection: 'row',
+    // justifyContent: 'space-between',
+    // width: '100%',
+    // marginTop: '6%',
+    marginBottom: '3%',
+  },
+  downloadAreaSection: {
+    marginBottom: '3%',
   },
 });

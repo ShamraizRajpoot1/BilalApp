@@ -47,28 +47,23 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
     if (!isValidPassword(password)) {
       throw new Error('Password must have at least 8 characters');
     }
-
-   
-    
       register(email, password)
-  //       .then((user) => {
+        .then((user) => {
          
-  //         if (user) {
-  //          navigation.navigate('App')
-  //         } else {
-  //           Toast.show('Registration failed', Toast.LONG);
-  //         }
-  //       })
-  //       .catch((error) => {
+          if (user) {
+           navigation.navigate('App')
+          } else {
+            Toast.show('Registration failed', Toast.LONG);
+          }
+        })
+        .catch((error) => {
          
-  //         console.error(error);
-  //         Toast.show('Registration error', Toast.LONG);
-  //       });
+          console.error(error);
+          Toast.show('Registration error', Toast.LONG);
+        });
     
-  // } catch (error) {
-  //   Toast.show(error.message, Toast.LONG);
-  // }
   }
+  
     const back = () =>{
 
       navigation.goBack()

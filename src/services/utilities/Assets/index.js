@@ -1,4 +1,5 @@
 const appImages = {
+splash: require('../../../assets/images/leos-logo.png'),
 buliding: require('../../../assets/images/building.jpg'),
 commingsoon : require('../../../assets/images/commingSoon.jpg'),
 }
